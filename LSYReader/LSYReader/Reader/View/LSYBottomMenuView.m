@@ -8,19 +8,26 @@
 
 #import "LSYBottomMenuView.h"
 #import "LSYMenuView.h"
+#import "Masonry.h"
 @interface LSYBottomMenuView ()
 @property (nonatomic,strong) LSYReadProgressView *progressView;
-@property (nonatomic,strong) LSYThemeView *themeView;
-@property (nonatomic,strong) UIButton *minSpacing;
-@property (nonatomic,strong) UIButton *mediuSpacing;
-@property (nonatomic,strong) UIButton *maxSpacing;
-@property (nonatomic,strong) UIButton *catalog;
+//@property (nonatomic,strong) UIButton *minSpacing;
+//@property (nonatomic,strong) UIButton *mediuSpacing;
+//@property (nonatomic,strong) UIButton *maxSpacing;
 @property (nonatomic,strong) UISlider *slider;
-@property (nonatomic,strong) UIButton *lastChapter;
-@property (nonatomic,strong) UIButton *nextChapter;
-@property (nonatomic,strong) UIButton *increaseFont;
-@property (nonatomic,strong) UIButton *decreaseFont;
-@property (nonatomic,strong) UILabel *fontLabel;
+@property (nonatomic,strong) UIButton *lastChapter;//上一章
+@property (nonatomic,strong) UIButton *nextChapter;//下一章
+//@property (nonatomic,strong) UIButton *increaseFont;
+//@property (nonatomic,strong) UIButton *decreaseFont;
+//@property (nonatomic,strong) UILabel *fontLabel;
+
+
+@property (nonatomic, strong) UIButton *dayButton;//夜间
+@property (nonatomic, strong) UIButton *setButton;//设置
+@property (nonatomic, strong) UIButton *cacheButton;//缓存
+@property (nonatomic, strong) UIButton *markButton;//书签
+@property (nonatomic, strong) UIButton *catalog;//目录
+
 @end
 @implementation LSYBottomMenuView
 - (instancetype)initWithFrame:(CGRect)frame
@@ -32,28 +39,95 @@
     return self;
 }
 -(void)setup{
-    [self setBackgroundColor:[UIColor colorWithRed:0 green:0 blue:0 alpha:0.8]];
+    [self setBackgroundColor:[UIColor colorWithRed:0 green:0 blue:0 alpha:0.9]];
     [self addSubview:self.slider];
-    [self addSubview:self.catalog];
     [self addSubview:self.progressView];
     [self addSubview:self.lastChapter];
     [self addSubview:self.nextChapter];
-    [self addSubview:self.increaseFont];
-    [self addSubview:self.decreaseFont];
-    [self addSubview:self.fontLabel];
-    [self addSubview:self.themeView];
+    //添加夜间按钮
+    [self addSubview:self.dayButton];
+    //添加设置按钮
+    [self addSubview:self.setButton];
+    //添加缓存按钮
+    [self addSubview:self.cacheButton];
+    //添加书签按钮
+    [self addSubview:self.markButton];
+    //添加目录按钮
+    [self addSubview:self.catalog];
+    //
     [self addObserver:self forKeyPath:@"readModel.chapter" options:NSKeyValueObservingOptionNew context:NULL];
     [self addObserver:self forKeyPath:@"readModel.page" options:NSKeyValueObservingOptionNew context:NULL];
     [[LSYReadConfig shareInstance] addObserver:self forKeyPath:@"fontSize" options:NSKeyValueObservingOptionNew context:NULL];
+}
+
+
+- (UIButton *)dayButton {
+    if (!_dayButton) {
+        _dayButton = [LSYReadUtilites commonButtonSEL:@selector(DayClick) target:self];
+        //设置图片
+        
+        //设置文字
+        [_dayButton setTitle:@"夜间" forState:UIControlStateNormal];
+        [_dayButton setTitle:@"日间" forState:UIControlStateSelected];
+        _dayButton.titleLabel.font = [UIFont systemFontOfSize:14.0f];
+    }
+    return _dayButton;
+}
+
+- (UIButton *)setButton {
+    if (!_setButton) {
+        _setButton = [LSYReadUtilites commonButtonSEL:@selector(showSetMenu) target:self];
+        //设置图片
+        
+        //设置文字
+        [_setButton setTitle:@"设置" forState:UIControlStateNormal];
+        _setButton.titleLabel.font = [UIFont systemFontOfSize:14.0f];
+    }
+    return _setButton;
+}
+
+- (UIButton *)cacheButton {
+    if (!_cacheButton) {
+        
+        _cacheButton = [LSYReadUtilites commonButtonSEL:@selector(cacheClick) target:self];
+        //设置图片
+        
+        //设置文字
+        [_cacheButton setTitle:@"缓存" forState:UIControlStateNormal];
+        _cacheButton.titleLabel.font = [UIFont systemFontOfSize:14.0f];
+    }
+    
+    return _cacheButton;
+}
+
+- (UIButton *)markButton {
+    if (!_markButton) {
+        
+        _markButton = [LSYReadUtilites commonButtonSEL:@selector(markClick) target:self];
+        
+        //设置图片
+        
+        
+        //设置文字
+        [_markButton setTitle:@"标签" forState:UIControlStateNormal];
+        _markButton.titleLabel.font = [UIFont systemFontOfSize:14.0f];
+    }
+    
+    return _markButton;
 }
 -(UIButton *)catalog
 {
     if (!_catalog) {
         _catalog = [LSYReadUtilites commonButtonSEL:@selector(showCatalog) target:self];
         [_catalog setImage:[UIImage imageNamed:@"reader_cover"] forState:UIControlStateNormal];
+        [_catalog setTitle:@"目录" forState:UIControlStateNormal];
+        _catalog.titleLabel.font = [UIFont systemFontOfSize:14.0f];
     }
     return _catalog;
 }
+
+
+
 -(LSYReadProgressView *)progressView
 {
     if (!_progressView) {
@@ -95,46 +169,7 @@
     }
     return _lastChapter;
 }
--(UIButton *)increaseFont
-{
-    if (!_increaseFont) {
-        _increaseFont = [LSYReadUtilites commonButtonSEL:@selector(changeFont:) target:self];
-        [_increaseFont setTitle:@"A+" forState:UIControlStateNormal];
-        [_increaseFont.titleLabel setFont:[UIFont systemFontOfSize:17]];
-        _increaseFont.layer.borderWidth = 1;
-        _increaseFont.layer.borderColor = [UIColor whiteColor].CGColor;
-    }
-    return _increaseFont;
-}
--(UIButton *)decreaseFont
-{
-    if (!_decreaseFont) {
-        _decreaseFont = [LSYReadUtilites commonButtonSEL:@selector(changeFont:) target:self];
-        [_decreaseFont setTitle:@"A-" forState:UIControlStateNormal];
-        [_decreaseFont.titleLabel setFont:[UIFont systemFontOfSize:17]];
-        _decreaseFont.layer.borderWidth = 1;
-        _decreaseFont.layer.borderColor = [UIColor whiteColor].CGColor;
-    }
-    return _decreaseFont;
-}
--(UILabel *)fontLabel
-{
-    if (!_fontLabel) {
-        _fontLabel = [[UILabel alloc] init];
-        _fontLabel.font = [UIFont systemFontOfSize:14];
-        _fontLabel.textColor = [UIColor whiteColor];
-        _fontLabel.textAlignment = NSTextAlignmentCenter;
-        _fontLabel.text = [NSString stringWithFormat:@"%d",(int)[LSYReadConfig shareInstance].fontSize];
-    }
-    return _fontLabel;
-}
--(LSYThemeView *)themeView
-{
-    if (!_themeView) {
-        _themeView = [[LSYThemeView alloc] init];
-    }
-    return _themeView;
-}
+
 #pragma mark - Button Click
 -(void)jumpChapter:(UIButton *)sender
 {
@@ -150,27 +185,27 @@
         
     }
 }
--(void)changeFont:(UIButton *)sender
-{
-
-    if (sender == _increaseFont) {
-
-        if (floor([LSYReadConfig shareInstance].fontSize) == floor(MaxFontSize)) {
-            return;
-        }
-        [LSYReadConfig shareInstance].fontSize++;
-    }
-    else{
-        if (floor([LSYReadConfig shareInstance].fontSize) == floor(MinFontSize)){
-            return;
-        }
-        [LSYReadConfig shareInstance].fontSize--;
-    }
-    
-    if ([self.delegate respondsToSelector:@selector(menuViewFontSize:)]) {
-        [self.delegate menuViewFontSize:self];
-    }
-}
+//-(void)changeFont:(UIButton *)sender
+//{
+//
+//    if (sender == _increaseFont) {
+//
+//        if (floor([LSYReadConfig shareInstance].fontSize) == floor(MaxFontSize)) {
+//            return;
+//        }
+//        [LSYReadConfig shareInstance].fontSize++;
+//    }
+//    else{
+//        if (floor([LSYReadConfig shareInstance].fontSize) == floor(MinFontSize)){
+//            return;
+//        }
+//        [LSYReadConfig shareInstance].fontSize--;
+//    }
+//    
+//    if ([self.delegate respondsToSelector:@selector(menuViewFontSize:)]) {
+//        [self.delegate menuViewFontSize:self];
+//    }
+//}
 #pragma mark showMsg
 
 -(void)changeMsg:(UISlider *)sender
@@ -188,11 +223,7 @@
     if ([keyPath isEqualToString:@"readModel.chapter"] || [keyPath isEqualToString:@"readModel.page"]) {
         _slider.value = _readModel.page/((float)(_readModel.chapterModel.pageCount-1))*100;
         [_progressView title:_readModel.chapterModel.title progress:[NSString stringWithFormat:@"%.1f%%",_slider.value]];
-    }
-    else if ([keyPath isEqualToString:@"fontSize"]){
-        _fontLabel.text = [NSString stringWithFormat:@"%d",(int)[LSYReadConfig shareInstance].fontSize];
-    }
-    else{
+    }else{
         if (_slider.state == UIControlStateNormal) {
             _progressView.hidden = YES;
         }
@@ -225,17 +256,64 @@
         [self.delegate menuViewInvokeCatalog:self];
     }
 }
+- (void)showSetMenu {
+    if ([self.delegate respondsToSelector:@selector(menuViewSet:)]) {
+        [self.delegate menuViewSet:self];
+    }
+}
+
+- (void)DayClick {
+    if ([self.delegate respondsToSelector:@selector(menuViewDay:)]) {
+        [self.delegate menuViewDay:self];
+    }
+}
+
+- (void)cacheClick {
+    if ([self.delegate respondsToSelector:@selector(menuViewCache:)]) {
+        [self.delegate menuViewCache:self];
+    }
+}
+
+- (void)markClick {
+    if ([self.delegate respondsToSelector:@selector(menuViewMark:)]) {
+        [self.delegate menuViewMark:self];
+    }
+}
+
+//布局控件
 -(void)layoutSubviews
 {
     [super layoutSubviews];
+    //缓存
+    [_cacheButton mas_makeConstraints:^(MASConstraintMaker *make) {
+       //
+        make.centerX.equalTo(self.mas_centerX);
+        make.bottom.equalTo(self.mas_bottom).mas_offset(-15);
+    }];
+    //设置
+    [_setButton mas_makeConstraints:^(MASConstraintMaker *make) {
+        make.centerY.equalTo(_cacheButton.mas_centerY);
+        make.centerX.equalTo(self.mas_centerX).multipliedBy(0.6);
+    }];
+    //书签
+    [_markButton mas_makeConstraints:^(MASConstraintMaker *make) {
+        make.centerY.equalTo(_cacheButton.mas_centerY);
+        make.centerX.equalTo(self.mas_centerX).multipliedBy(1.4);
+    }];
+    //夜间
+    [_dayButton mas_makeConstraints:^(MASConstraintMaker *make) {
+       //
+        make.centerY.equalTo(_cacheButton.mas_centerY);
+        make.centerX.equalTo(self.mas_centerX).multipliedBy(0.2);
+    }];
+    //目录
+    [_catalog mas_makeConstraints:^(MASConstraintMaker *make) {
+        make.centerY.equalTo(_cacheButton.mas_centerY);
+        make.centerX.equalTo(self.mas_centerX).multipliedBy(1.8);
+    }];
     _slider.frame = CGRectMake(50, 20, ViewSize(self).width-100, 30);
     _lastChapter.frame = CGRectMake(5, 20, 40, 30);
     _nextChapter.frame = CGRectMake(DistanceFromLeftGuiden(_slider)+5, 20, 40, 30);
-    _decreaseFont.frame = CGRectMake(10, DistanceFromTopGuiden(_slider)+10, (ViewSize(self).width-20)/3, 30);
-    _fontLabel.frame = CGRectMake(DistanceFromLeftGuiden(_decreaseFont), DistanceFromTopGuiden(_slider)+10, (ViewSize(self).width-20)/3,  30);
-    _increaseFont.frame = CGRectMake(DistanceFromLeftGuiden(_fontLabel), DistanceFromTopGuiden(_slider)+10,  (ViewSize(self).width-20)/3, 30);
-    _themeView.frame = CGRectMake(0, DistanceFromTopGuiden(_increaseFont)+10, ViewSize(self).width, 40);
-    _catalog.frame = CGRectMake(10, DistanceFromTopGuiden(_themeView), 30, 30);
     _progressView.frame = CGRectMake(60, -60, ViewSize(self).width-120, 50);
     
 }

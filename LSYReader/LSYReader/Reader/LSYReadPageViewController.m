@@ -7,7 +7,6 @@
 //
 
 #import "LSYReadPageViewController.h"
-#import "LSYReadViewController.h"
 #import "LSYChapterModel.h"
 #import "LSYMenuView.h"
 #import "LSYCatalogViewController.h"
@@ -18,6 +17,7 @@
 #import "NSString+HTML.h"
 #import "LSYReadConfig.h"
 #import "DZMCoverController.h"
+#import "SMQContentController.h"
 #define AnimationDelay 0.3
 
 @interface LSYReadPageViewController ()<UIPageViewControllerDelegate,UIPageViewControllerDataSource,LSYMenuViewDelegate,UIGestureRecognizerDelegate,LSYCatalogViewControllerDelegate,LSYReadViewControllerDelegate,DZMCoverControllerDelegate>
@@ -34,9 +34,9 @@
 @property (nonatomic,strong) LSYMenuView *menuView; //菜单栏
 @property (nonatomic,strong) LSYCatalogViewController *catalogVC;   //侧边栏
 @property (nonatomic,strong) UIView * catalogView;  //侧边栏背景
-@property (nonatomic,strong) LSYReadViewController *readView;   //当前阅读视图
+//@property (nonatomic,strong) LSYReadViewController *readView;   //当前阅读视图
 
-
+@property (nonatomic, strong) SMQContentController *readView;
 @property (nonatomic,strong) LSYReadConfig *config;//配置信息
 @end
 
@@ -50,7 +50,8 @@
         [self addChildViewController:self.pageViewController];
         [_pageViewController setViewControllers:@[[self readViewWithChapter:_model.record.chapter page:_model.record.page]] direction:UIPageViewControllerNavigationDirectionForward animated:YES completion:nil];
     }else {
-        
+        [self addChildViewController:self.converController];
+        [_converController setController:[self readViewWithChapter:_model.record.chapter page:_model.record.page]];
     }
    
     _chapter = _model.record.chapter;
@@ -123,6 +124,8 @@
     if (!_converController) {
         _converController = [[DZMCoverController alloc] init];
         _converController.delegate = self;
+        
+        [self.view addSubview:_converController.view];
         
     }
     
@@ -261,7 +264,7 @@
 }
 #pragma mark - Create Read View Controller
 
--(LSYReadViewController *)readViewWithChapter:(NSUInteger)chapter page:(NSUInteger)page{
+-(SMQContentController *)readViewWithChapter:(NSUInteger)chapter page:(NSUInteger)page{
 
     
     if (_model.record.chapter != chapter) {
@@ -275,8 +278,16 @@
             [ _model.chapters[chapter] paginateEpubWithBounds:CGRectMake(0,0, [UIScreen mainScreen].bounds.size.width-LeftSpacing-RightSpacing, [UIScreen mainScreen].bounds.size.height-TopSpacing-BottomSpacing)];
         }
     }
-    _readView = [[LSYReadViewController alloc] init];
+    //创建阅读控制器
+    UICollectionViewFlowLayout *layout = [[UICollectionViewFlowLayout alloc] init];
+    layout.itemSize = CGSizeMake(ScreenSize.width, ScreenSize.height);
+    layout.minimumLineSpacing = 0.0;
+    layout.minimumInteritemSpacing = 0.0;
+    layout.sectionInset = UIEdgeInsetsMake(0, 0, 0, 0);
+    _readView = [[SMQContentController alloc] initWithCollectionViewLayout:layout];
     _readView.recordModel = _model.record;
+    _readView.readModel = _model;
+    _readView.resourceURL = _resourceURL;
 //     NSLog(@"---%@",[NSURL fileURLWithPath:_model.chapters[chapter].chapterpath]);
     if (_model.type == ReaderEpub) {
         _readView.type = ReaderEpub;
@@ -311,7 +322,7 @@
     [LSYReadModel updateLocalModel:_model url:_resourceURL];
 }
 #pragma mark - Read View Controller Delegate
--(void)readViewEndEdit:(LSYReadViewController *)readView
+-(void)readViewEndEdit:(SMQContentController *)readView
 {
     for (UIGestureRecognizer *ges in self.pageViewController.view.gestureRecognizers) {
         if ([ges isKindOfClass:[UIPanGestureRecognizer class]]) {
@@ -320,7 +331,7 @@
         }
     }
 }
--(void)readViewEditeding:(LSYReadViewController *)readView
+-(void)readViewEditeding:(SMQContentController *)readView
 {
     for (UIGestureRecognizer *ges in self.pageViewController.view.gestureRecognizers) {
         if ([ges isKindOfClass:[UIPanGestureRecognizer class]]) {
@@ -371,7 +382,7 @@
 - (void)pageViewController:(UIPageViewController *)pageViewController didFinishAnimating:(BOOL)finished previousViewControllers:(NSArray *)previousViewControllers transitionCompleted:(BOOL)completed
 {
     if (!completed) {
-        LSYReadViewController *readView = previousViewControllers.firstObject;
+        SMQContentController *readView = previousViewControllers.firstObject;
         _readView = readView;
         _page = readView.recordModel.page;
         _chapter = readView.recordModel.chapter;
@@ -400,15 +411,54 @@
 
 //获取上一个控制器
 - (UIViewController *)coverController:(DZMCoverController *)coverController getAboveControllerWithCurrentController:(UIViewController *)currentController {
+    _pageChange = _page;
+    _chapterChange = _chapter;
     
+    if (_chapterChange==0 &&_pageChange == 0) {
+        return nil;
+    }
+    if (_pageChange==0) {
+        _chapterChange--;
+        _pageChange = _model.chapters[_chapterChange].pageCount-1;
+    }
+    else{
+        _pageChange--;
+    }
+    
+    return [self readViewWithChapter:_chapterChange page:_pageChange];
+
 }
+
 //获取下一个控制器
 - (UIViewController * _Nullable)coverController:(DZMCoverController * _Nonnull)coverController getBelowControllerWithCurrentController:(UIViewController * _Nullable)currentController{
-    
+    _pageChange = _page;
+    _chapterChange = _chapter;
+    if (_pageChange == _model.chapters.lastObject.pageCount-1 && _chapterChange == _model.chapters.count-1) {
+        return nil;
+    }
+    if (_pageChange == _model.chapters[_chapterChange].pageCount-1) {
+        _chapterChange++;
+        _pageChange = 0;
+    }
+    else{
+        _pageChange++;
+    }
+    return [self readViewWithChapter:_chapterChange page:_pageChange];
 }
+//将要显示的控制器
+- (void)coverController:(DZMCoverController * _Nonnull)coverController willTransitionToPendingController:(UIViewController * _Nullable)pendingController {
+    _chapter = _chapterChange;
+    _page = _pageChange;
+}
+
 //切换结果
 - (void)coverController:(DZMCoverController * _Nonnull)coverController currentController:(UIViewController * _Nullable)currentController finish:(BOOL)isFinish {
-    
+    if (isFinish) {//切换完成
+        //更新阅读记录
+        [self updateReadModelWithChapter:_chapter page:_page];
+    }else {
+        
+    }
 }
 
 @end

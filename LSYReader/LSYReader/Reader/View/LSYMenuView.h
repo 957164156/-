@@ -15,10 +15,14 @@
 @optional
 -(void)menuViewDidHidden:(LSYMenuView *)menu;
 -(void)menuViewDidAppear:(LSYMenuView *)menu;
--(void)menuViewInvokeCatalog:(LSYBottomMenuView *)bottomMenu;
+
 -(void)menuViewJumpChapter:(NSUInteger)chapter page:(NSUInteger)page;
 -(void)menuViewFontSize:(LSYBottomMenuView *)bottomMenu;
--(void)menuViewMark:(LSYTopMenuView *)topMenu;
+-(void)menuViewMark:(LSYBottomMenuView *)topMenu;//笔记被点击
+-(void)menuViewSet:(LSYBottomMenuView *)bottomMenu;//设置被点击
+-(void)menuViewCache:(LSYBottomMenuView *)bottomMenu;//缓存被点击
+-(void)menuViewDay:(LSYBottomMenuView *)bottomMenu;//夜间被点击
+-(void)menuViewInvokeCatalog:(LSYBottomMenuView *)bottomMenu;//目录被点击
 @end
 @interface LSYMenuView : UIView
 @property (nonatomic,weak) id<LSYMenuViewDelegate> delegate;

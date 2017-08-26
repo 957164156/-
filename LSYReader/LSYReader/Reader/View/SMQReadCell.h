@@ -18,4 +18,6 @@
 @property (nonatomic,strong) NSArray *imageArray;  //epub显示的图片
 @property (nonatomic,assign) ReaderType type;   //文本类型
 @property (nonatomic,strong) LSYRecordModel *recordModel;   //阅读进度
+
+- (void)createReadView;
 @end

@@ -7,8 +7,10 @@
 //
 
 #import "SMQContentController.h"
-#import "SMQReadCell.h"
-@interface SMQContentController ()
+#import "LSYReadConfig.h"
+@interface SMQContentController ()<LSYReadViewControllerDelegate>
+
+@property (nonatomic, weak) UILabel *topTitle;
 
 @end
 
@@ -16,21 +18,27 @@
 
 static NSString * const reuseIdentifier = @"readViewCell";
 
+
 - (void)viewDidLoad {
     [super viewDidLoad];
-    
     //添加顶部的用来显示章节
     [self addHeaderTitleView];
-    
     //添加底部用来显示电量时间
     [self addFooterTitleView];
-    // Uncomment the following line to preserve selection between presentations
+    //设置配置
+    self.collectionView.backgroundColor = [LSYReadConfig shareInstance].theme;
+    self.collectionView.scrollEnabled = [LSYReadConfig shareInstance].currentEffect == effectUpAndDown ? YES : NO;//当前的翻页样式来确定是否能滚动
+    self.collectionView.decelerationRate = UIScrollViewDecelerationRateFast;
+    self.collectionView.showsVerticalScrollIndicator = NO;
+    self.collectionView.showsHorizontalScrollIndicator = NO;
+    self.collectionView.bounces = NO;
+    if ([LSYReadConfig shareInstance].currentEffect == effectUpAndDown) {//当前是滚动翻页
+        NSIndexPath *indexPath = [NSIndexPath indexPathForRow:self.recordModel.page inSection:self.recordModel.chapter];
+        [self.collectionView scrollToItemAtIndexPath:indexPath atScrollPosition:UICollectionViewScrollPositionTop animated:YES];
+    }
     // self.clearsSelectionOnViewWillAppear = NO;
-    
     // Register cell classes
-    [self.collectionView registerClass:[UICollectionViewCell class] forCellWithReuseIdentifier:reuseIdentifier];
-    
-    // Do any additional setup after loading the view.
+    [self.collectionView registerClass:[SMQReadCell class] forCellWithReuseIdentifier:reuseIdentifier];
 }
 
 
@@ -40,6 +48,7 @@ static NSString * const reuseIdentifier = @"readViewCell";
     UILabel *title = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, ScreenSize.width, 20)];
     title.font = [UIFont systemFontOfSize:15.0f];
     title.textColor = [UIColor blackColor];
+    self.topTitle = title;
     [header addSubview:title];
     [self.view addSubview:header];
 }
@@ -66,21 +75,53 @@ static NSString * const reuseIdentifier = @"readViewCell";
 #pragma mark <UICollectionViewDataSource>
 
 - (NSInteger)numberOfSectionsInCollectionView:(UICollectionView *)collectionView {
-    return 1;
+    
+    return self.recordModel.chapterCount;
 }
 
 
 - (NSInteger)collectionView:(UICollectionView *)collectionView numberOfItemsInSection:(NSInteger)section {
-    return 10;
+    if ([LSYReadConfig shareInstance].currentEffect == effectUpAndDown) {//滚动的
+        return self.readModel.chapters[section].pageCount;
+    }
+    return 1;
 }
 
 - (UICollectionViewCell *)collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath {
     SMQReadCell *cell = [collectionView dequeueReusableCellWithReuseIdentifier:reuseIdentifier forIndexPath:indexPath];
     
-    
-    // Configure the cell
-    
+    cell.readView.delegate = self;
     return cell;
+}
+
+- (void)collectionView:(UICollectionView *)collectionView willDisplayCell:(SMQReadCell *)cell forItemAtIndexPath:(NSIndexPath *)indexPath {
+    //在这里跟新章节,首先更新数据
+    self.recordModel.chapter = indexPath.section;
+    self.recordModel.page = indexPath.row;
+    //保存阅读记录
+    [LSYReadModel updateLocalModel:self.readModel url:self.resourceURL];
+    //当前的数据
+    LSYChapterModel *chaptModel = self.readModel.chapters[indexPath.section];
+    //填充数据
+    cell.content = [chaptModel stringOfPage:indexPath.row];
+    cell.epubFrameRef = _epubFrameRef;
+    cell.imageArray = _imageArray;
+    cell.type = ReaderTxt;
+    cell.recordModel = _recordModel;
+    [cell createReadView];
+}
+
+//数据显示完毕
+- (void)collectionView:(UICollectionView *)collectionView didEndDisplayingCell:(SMQReadCell *)cell forItemAtIndexPath:(NSIndexPath *)indexPath {
+    if ([LSYReadConfig shareInstance].currentEffect == effectUpAndDown) {//上下滚动
+        //
+        [cell.readView removeFromSuperview];
+        cell.readView = nil;
+        cell.content = nil;
+        cell.epubFrameRef = nil;
+        cell.imageArray = nil;
+        cell.recordModel = nil;
+    }
 }
 
 #pragma mark <UICollectionViewDelegate>
@@ -113,5 +154,19 @@ static NSString * const reuseIdentifier = @"readViewCell";
 	
 }
 */
+#pragma mark  =======  LSYReadViewControllerDelegate
 
+-(void)readViewEditeding:(SMQContentController *)readView {
+   //
+    if (self.delegate && [self.delegate respondsToSelector:@selector(readViewEditeding:)]) {
+        [self.delegate readViewEditeding:self];
+    }
+}
+
+-(void)readViewEndEdit:(SMQContentController *)readView {
+   //
+    if (self.delegate && [self.delegate respondsToSelector:@selector(readViewEndEdit:)]) {
+        [self.delegate readViewEndEdit:self];
+}
+}
 @end

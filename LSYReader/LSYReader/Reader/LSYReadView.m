@@ -9,8 +9,8 @@
 #import "LSYReadView.h"
 #import "LSYReadConfig.h"
 #import "LSYNoteModel.h"
-#import "LSYReadViewController.h"
 #import "LSYMagnifierView.h"
+#import "SMQContentController.h"
 @interface LSYReadView ()
 @property (nonatomic,strong) LSYMagnifierView *magnifierView;
 @end

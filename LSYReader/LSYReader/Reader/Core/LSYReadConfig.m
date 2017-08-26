@@ -27,6 +27,7 @@
         if (data) {
             NSKeyedUnarchiver *unarchive = [[NSKeyedUnarchiver alloc]initForReadingWithData:data];
             LSYReadConfig *config = [unarchive decodeObjectForKey:@"ReadConfig"];
+            [config addObserver:config forKeyPath:@"effectType" options:NSKeyValueObservingOptionNew context:NULL];
             [config addObserver:config forKeyPath:@"fontSize" options:NSKeyValueObservingOptionNew context:NULL];
             [config addObserver:config forKeyPath:@"lineSpace" options:NSKeyValueObservingOptionNew context:NULL];
             [config addObserver:config forKeyPath:@"fontColor" options:NSKeyValueObservingOptionNew context:NULL];
@@ -38,6 +39,7 @@
         _fontColor = [UIColor blackColor];
         _theme = [UIColor whiteColor];
         _currentEffect = effectSimulation;//仿真翻页
+        [self addObserver:self forKeyPath:@"effectType" options:NSKeyValueObservingOptionNew context:NULL];
         [self addObserver:self forKeyPath:@"fontSize" options:NSKeyValueObservingOptionNew context:NULL];
         [self addObserver:self forKeyPath:@"lineSpace" options:NSKeyValueObservingOptionNew context:NULL];
         [self addObserver:self forKeyPath:@"fontColor" options:NSKeyValueObservingOptionNew context:NULL];
@@ -62,6 +64,7 @@
 }
 -(void)encodeWithCoder:(NSCoder *)aCoder
 {
+    [aCoder encodeInt:self.currentEffect forKey:@"effectType"];
     [aCoder encodeDouble:self.fontSize forKey:@"fontSize"];
     [aCoder encodeDouble:self.lineSpace forKey:@"lineSpace"];
     [aCoder encodeObject:self.fontColor forKey:@"fontColor"];
@@ -71,6 +74,7 @@
 {
     self = [super init];
     if (self) {
+        self.currentEffect = [aDecoder decodeIntForKey:@"effectType"];
         self.fontSize = [aDecoder decodeDoubleForKey:@"fontSize"];
         self.lineSpace = [aDecoder decodeDoubleForKey:@"lineSpace"];
         self.fontColor = [aDecoder decodeObjectForKey:@"fontColor"];
